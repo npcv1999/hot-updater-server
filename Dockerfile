@@ -23,4 +23,5 @@ COPY prisma ./prisma
 
 EXPOSE 3001
 
-CMD ["node", "dist/src/index.js"]
+# ponytail: migrate on boot so single-container PaaS (Railway/Render) works with no extra step; idempotent, no-op under compose's separate migrate service
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/index.js"]
