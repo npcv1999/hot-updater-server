@@ -18,23 +18,26 @@ const stickyForceAdapter: typeof baseAdapter = Object.assign(
     const getUpdateInfo = plugin.getUpdateInfo?.bind(plugin);
     if (!getUpdateInfo) return plugin;
 
-    plugin.getUpdateInfo = async (args, context) => {
-      const info = await getUpdateInfo(args, context);
-      if (info?.status !== "UPDATE" || info.shouldForceUpdate) return info;
+    // ponytail: plugin object bị freeze bởi createHotUpdater — spread ra object mới, không mutate
+    return {
+      ...plugin,
+      getUpdateInfo: (async (args: Parameters<typeof getUpdateInfo>[0], context: Parameters<typeof getUpdateInfo>[1]) => {
+        const info = await getUpdateInfo(args, context);
+        if (info?.status !== "UPDATE" || info.shouldForceUpdate) return info;
 
-      const missedForce = await prisma.bundles.count({
-        where: {
-          enabled: true,
-          should_force_update: true,
-          platform: args.platform,
-          channel: args.channel ?? "production",
-          id: { gt: args.bundleId, lte: info.id },
-        },
-      });
-      // ponytail: không lọc target_app_version — đủ khi chỉ chạy một dòng app version; thêm semver filter nếu phát hành nhiều version song song
-      return missedForce > 0 ? { ...info, shouldForceUpdate: true } : info;
+        const missedForce = await prisma.bundles.count({
+          where: {
+            enabled: true,
+            should_force_update: true,
+            platform: args.platform,
+            channel: args.channel ?? "production",
+            id: { gt: args.bundleId, lte: info.id },
+          },
+        });
+        // ponytail: không lọc target_app_version — đủ khi chỉ chạy một dòng app version; thêm semver filter nếu phát hành nhiều version song song
+        return missedForce > 0 ? { ...info, shouldForceUpdate: true } : info;
+      }) as typeof getUpdateInfo,
     };
-    return plugin;
   },
   baseAdapter,
 );
