@@ -26,7 +26,7 @@ model bundles {
   manifest_storage_uri String?
   manifest_file_hash String?
   asset_base_storage_uri String?
-  version Int
+  version Int @default(dbgenerated("0"))
   patches bundle_patches[] @relation("bundle_patches_bundles_patches")
   baseForPatches bundle_patches[] @relation("bundle_patches_bundles_baseForPatches")
   @@index([target_app_version], map: "bundles_target_app_version_idx")
