@@ -69,6 +69,68 @@ Expected response:
 
 Open Swagger UI at `http://localhost:3001/docs`. Click **Authorize**, then enter the value of `HOT_UPDATER_AUTH_TOKEN` to test bundle management endpoints.
 
+The repository uses an apps-based layout:
+
+```txt
+apps/
+  api/  Express, Prisma, migrations
+  web/  React, Vite
+```
+
+Express is API-only and does not render or serve dashboard HTML. For frontend development, keep the API running on port `3001` and start Vite separately:
+
+```sh
+npm run dev:web
+```
+
+Open `http://localhost:5173/dashboard/`. Vite proxies `/dashboard/api/*` to the Express server.
+
+If you want to test the web app against a deployed API instead of the local proxy, create `apps/web/.env`:
+
+```sh
+cp apps/web/.env.example apps/web/.env
+```
+
+```env
+VITE_API_BASE_URL="https://your-api.up.railway.app"
+```
+
+Build the API and web independently:
+
+```sh
+npm run build
+npm run build:web
+```
+
+For production, publish `apps/web/dist` as a separate static site. Set `VITE_API_BASE_URL` in the web host to your API origin, for example `https://your-api.up.railway.app`.
+
+### Deploy the dashboard web
+
+Recommended setup:
+
+- API: Railway
+- Web: Vercel, Netlify, Railway static hosting, or AWS Amplify
+
+For Vercel:
+
+- Root Directory: `apps/web`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Environment Variable: `VITE_API_BASE_URL=https://your-api.up.railway.app`
+- Open URL: `https://your-dashboard.vercel.app/dashboard/`
+
+On the API host, allow the deployed dashboard origin:
+
+```env
+DASHBOARD_ALLOWED_ORIGINS="https://your-dashboard.vercel.app"
+```
+
+For multiple dashboard domains, separate them with commas:
+
+```env
+DASHBOARD_ALLOWED_ORIGINS="http://localhost:5173,https://your-dashboard.vercel.app"
+```
+
 Stop the server with `Ctrl + C`. Stop PostgreSQL with:
 
 ```sh
@@ -105,6 +167,7 @@ Set these values in `.env`:
 - `DATABASE_URL`
 - `HOT_UPDATER_AUTH_TOKEN`
 - `HOT_UPDATER_SERVER_URL`
+- `DASHBOARD_ALLOWED_ORIGINS` for deployed dashboard web origins
 - `S3_REGION`
 - `S3_ENDPOINT` for S3-compatible providers only
 - `S3_ACCESS_KEY_ID`
