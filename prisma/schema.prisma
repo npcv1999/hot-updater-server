@@ -26,14 +26,12 @@ model bundles {
   manifest_storage_uri String?
   manifest_file_hash String?
   asset_base_storage_uri String?
-  version Int @default(dbgenerated("0"))
   patches bundle_patches[] @relation("bundle_patches_bundles_patches")
   baseForPatches bundle_patches[] @relation("bundle_patches_bundles_baseForPatches")
   @@index([target_app_version], map: "bundles_target_app_version_idx")
   @@index([fingerprint_hash], map: "bundles_fingerprint_hash_idx")
   @@index([channel], map: "bundles_channel_idx")
   @@index([rollout_cohort_count], map: "bundles_rollout_idx")
-  @@index([target_app_version, platform, channel, version(sort: Desc)], map: "bundles_version_idx")
 }
 model bundle_patches {
   id String @db.VarChar(255) @id
@@ -53,3 +51,12 @@ model private_hot_updater_settings {
   value String @default("0.31.0")
 }
 // --- END HOT-UPDATER MODELS ---
+
+// Custom application metadata. Keep this outside the generated Hot Updater block.
+model BundleExtra {
+  bundleId String @id @db.Uuid
+  version  Int
+
+  @@index([version], map: "bundle_extras_version_idx")
+  @@map("bundle_extras")
+}
