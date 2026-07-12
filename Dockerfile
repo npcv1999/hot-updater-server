@@ -6,7 +6,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
-RUN npx prisma generate
+RUN npm run prisma:generate
 RUN npm run build
 
 FROM node:20-alpine
@@ -19,9 +19,9 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY prisma ./prisma
+COPY apps/api/prisma ./apps/api/prisma
 
 EXPOSE 3001
 
 # ponytail: migrate on boot so single-container PaaS (Railway/Render) works with no extra step; idempotent, no-op under compose's separate migrate service
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/index.js"]
+CMD ["sh", "-c", "npm run prisma:migrate:deploy && node dist/api/src/index.js"]

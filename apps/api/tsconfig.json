@@ -7,8 +7,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist",
+    "outDir": "../../dist/api",
     "rootDir": "."
   },
-  "include": ["src/**/*.ts", "hot-updater.config.ts"]
+  "include": ["src/**/*.ts"]
 }

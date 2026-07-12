@@ -54,7 +54,7 @@ model private_hot_updater_settings {
 
 // Custom application metadata. Keep this outside the generated Hot Updater block.
 model BundleExtra {
-  bundleId String @id @db.Uuid
+  bundleId String @id @map("bundle_id") @db.Uuid
   version  Int
 
   @@index([version], map: "bundle_extras_version_idx")

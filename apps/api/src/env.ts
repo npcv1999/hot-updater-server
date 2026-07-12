@@ -16,6 +16,11 @@ export function validateEnv() {
 
 export const port = Number(process.env.PORT ?? 3001);
 
+export const dashboardAllowedOrigins = (process.env.DASHBOARD_ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 export const s3Config = {
   region: process.env.S3_REGION ?? "us-east-1",
   endpoint: process.env.S3_ENDPOINT || undefined,
