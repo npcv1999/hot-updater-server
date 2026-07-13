@@ -3,7 +3,6 @@ import {
   Boxes,
   Check,
   ChevronDown,
-  ChevronRight,
   Filter,
   Flame,
   GitBranch,
@@ -18,7 +17,7 @@ import {
   Smartphone,
   Sun,
 } from "lucide-react";
-import { Fragment, type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 
 type Theme = "dark" | "light";
 
@@ -44,7 +43,6 @@ function getInitialTheme(): Theme {
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
-  const [expandedBundleId, setExpandedBundleId] = useState<string | null>(null);
   const [token, setToken] = useState("");
   const [platform, setPlatform] = useState("");
   const [channel, setChannel] = useState("");
@@ -96,7 +94,6 @@ export function App() {
       const payload = await response.json() as DashboardResponse;
       if (!response.ok) throw new Error(payload.error || payload.message || "Request failed");
       setBundles(payload.data || []);
-      setExpandedBundleId(null);
       setLoaded(true);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Request failed");
@@ -241,7 +238,6 @@ export function App() {
                 <thead>
                   <tr>
                     <th>Version</th>
-                    <th className="open-col"><span className="sr-only">Open</span></th>
                     <th>Bundle ID</th>
                     <th>Channel</th>
                     <th>Platform</th>
@@ -253,17 +249,10 @@ export function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleBundles.map((bundle) => (
-                    <BundleRow
-                      key={bundle.id}
-                      bundle={bundle}
-                      expanded={expandedBundleId === bundle.id}
-                      onToggle={() => setExpandedBundleId((current) => current === bundle.id ? null : bundle.id)}
-                    />
-                  ))}
+                  {visibleBundles.map((bundle) => <BundleRow key={bundle.id} bundle={bundle} />)}
                   {!visibleBundles.length && (
                     <tr>
-                      <td className="empty" colSpan={10}>
+                      <td className="empty" colSpan={9}>
                         <span className="empty-icon"><Layers3 /></span>
                         <strong>{loaded ? "No bundles in this view" : "Inventory is ready"}</strong>
                         <small>{loaded ? "0 records match the selected scope." : "No records loaded yet."}</small>
@@ -310,65 +299,22 @@ function MetricCard({
   );
 }
 
-function BundleRow({
-  bundle,
-  expanded,
-  onToggle,
-}: {
-  bundle: Bundle;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
+function BundleRow({ bundle }: { bundle: Bundle }) {
   const patchCount = Number(bundle.patchesCount ?? 0);
   const rollout = `${Number(bundle.rolloutCohortCount ?? 1000) / 10}%`;
 
   return (
-    <Fragment>
-      <tr className={expanded ? "is-expanded" : undefined}>
-        <td className="mono version-cell"><span className="version-badge">{bundle.version ?? "-"}</span></td>
-        <td className="open-col">
-          <button
-            className="row-action"
-            type="button"
-            title={expanded ? "Close bundle details" : "Open bundle details"}
-            aria-label={expanded ? "Close bundle details" : "Open bundle details"}
-            aria-expanded={expanded}
-            onClick={onToggle}
-          >
-            <ChevronRight />
-          </button>
-        </td>
-        <td className="mono bundle-id" title={bundle.id}>{bundle.id}</td>
-        <td><span className="channel-pill">{bundle.channel}</span></td>
-        <td><span className="platform"><Smartphone />{formatPlatform(bundle.platform)}</span></td>
-        <td>{patchCount > 0 ? <span className="patch-pill">{patchCount} patch{patchCount === 1 ? "" : "es"}</span> : <span className="muted">-</span>}</td>
-        <td><span className="target">{bundle.targetAppVersion ?? "-"}</span></td>
-        <td>{bundle.enabled ? <CheckState /> : <EmptyState />}</td>
-        <td>{bundle.shouldForceUpdate ? <CheckState /> : <EmptyState />}</td>
-        <td><span className="rollout">{rollout}</span></td>
-      </tr>
-      {expanded && (
-        <tr className="detail-row">
-          <td colSpan={10}>
-            <div className="bundle-detail">
-              <DetailItem label="Bundle reference" value={bundle.id} mono />
-              <DetailItem label="Delivery" value={`${bundle.channel} / ${formatPlatform(bundle.platform)}`} />
-              <DetailItem label="Target app" value={bundle.targetAppVersion ?? "Any version"} />
-              <DetailItem label="Release state" value={`${bundle.enabled ? "Enabled" : "Disabled"} / ${rollout} rollout`} />
-            </div>
-          </td>
-        </tr>
-      )}
-    </Fragment>
-  );
-}
-
-function DetailItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <span className="detail-item">
-      <small>{label}</small>
-      <strong className={mono ? "mono" : undefined} title={value}>{value}</strong>
-    </span>
+    <tr>
+      <td className="mono version-cell"><span className="version-badge">{bundle.version ?? "-"}</span></td>
+      <td className="mono bundle-id" title={bundle.id}>{bundle.id}</td>
+      <td><span className="channel-pill">{bundle.channel}</span></td>
+      <td><span className="platform"><Smartphone />{formatPlatform(bundle.platform)}</span></td>
+      <td>{patchCount > 0 ? <span className="patch-pill">{patchCount} patch{patchCount === 1 ? "" : "es"}</span> : <span className="muted">-</span>}</td>
+      <td><span className="target">{bundle.targetAppVersion ?? "-"}</span></td>
+      <td>{bundle.enabled ? <CheckState /> : <EmptyState />}</td>
+      <td>{bundle.shouldForceUpdate ? <CheckState /> : <EmptyState />}</td>
+      <td><span className="rollout">{rollout}</span></td>
+    </tr>
   );
 }
 

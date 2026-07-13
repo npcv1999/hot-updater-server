@@ -3,39 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "npm run dev:api",
-    "dev:api": "tsx watch apps/api/src/index.ts",
-    "dev:web": "npm run dev --prefix apps/web",
-    "start": "node dist/api/src/index.js",
-    "build": "npm run build:api",
-    "build:api": "tsc -p apps/api/tsconfig.json",
-    "build:web": "npm run build --prefix apps/web",
-    "prisma:generate": "prisma generate --schema apps/api/prisma/schema.prisma",
-    "prisma:migrate": "prisma migrate dev --schema apps/api/prisma/schema.prisma",
-    "prisma:migrate:deploy": "prisma migrate deploy --schema apps/api/prisma/schema.prisma",
-    "hot-updater:schema": "hot-updater db generate apps/api/src/hotUpdater.ts --yes"
-  },
-  "dependencies": {
-    "@hot-updater/aws": "^0.35.3",
-    "@hot-updater/server": "^0.35.3",
-    "@prisma/client": "^6.11.1",
-    "@types/swagger-ui-express": "^4.1.8",
-    "cors": "^2.8.6",
-    "dotenv": "^17.0.1",
-    "express": "^5.1.0",
-    "prisma": "^6.11.1",
-    "swagger-ui-express": "^5.0.1"
-  },
-  "devDependencies": {
-    "@hot-updater/bare": "^0.35.3",
-    "@hot-updater/core": "^0.35.3",
-    "@hot-updater/standalone": "^0.35.3",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.0.10",
-    "hot-updater": "^0.35.3",
-    "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "dev": "npm run dev -w hot-updater-api",
+    "dev:api": "npm run dev -w hot-updater-api",
+    "dev:web": "npm run dev -w hot-updater-dashboard",
+    "start": "npm run start -w hot-updater-api",
+    "build": "npm run build -w hot-updater-api",
+    "build:api": "npm run build -w hot-updater-api",
+    "build:web": "npm run build -w hot-updater-dashboard",
+    "prisma:generate": "npm run prisma:generate -w hot-updater-api",
+    "prisma:migrate": "npm run prisma:migrate -w hot-updater-api",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy -w hot-updater-api",
+    "hot-updater:schema": "npm run hot-updater:schema -w hot-updater-api"
   }
 }
