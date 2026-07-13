@@ -7,14 +7,41 @@ Self-hosted Hot Updater backend using:
 - PostgreSQL
 - AWS S3-compatible storage
 
+## Project Structure
+
+This is an npm workspaces monorepo with two apps sharing a single root lockfile:
+
+```txt
+apps/
+  api/   Express + Prisma + @hot-updater/server — the backend (deployable)
+  web/   React + Vite dashboard — a static site
+```
+
+Each app has its own `package.json`; the root `package.json` only declares the
+workspaces and forwards commands. Run everything from the repo root:
+
+| Command | Runs |
+|---|---|
+| `npm run dev` | API in watch mode (`apps/api`) |
+| `npm run dev:web` | Vite dev server (`apps/web`) |
+| `npm run build` | Build the API into `apps/api/dist` |
+| `npm run build:web` | Build the dashboard into `apps/web/dist` |
+| `npm run prisma:migrate` | Create/apply a dev migration |
+| `npm run prisma:migrate:deploy` | Apply pending migrations (production) |
+| `npm run prisma:generate` | Regenerate the Prisma client |
+
+Environment files: local API config lives in `apps/api/.env`, the web dev
+override in `apps/web/.env`, and production Compose config in `.env.production`
+at the root.
+
 ## Run Locally
 
 ### 1. Create the environment file
 
-Copy the example file and replace the S3 values with the IAM access key and bucket you created. Do not commit `.env`.
+Copy the example file and replace the S3 values with the IAM access key and bucket you created. Do not commit `apps/api/.env`.
 
 ```sh
-cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 ```
 
 For AWS S3, keep `S3_ENDPOINT` empty. `PORT=3001` is the default because port `3000` is commonly used by another local service.
@@ -68,14 +95,6 @@ Expected response:
 ```
 
 Open Swagger UI at `http://localhost:3001/docs`. Click **Authorize**, then enter the value of `HOT_UPDATER_AUTH_TOKEN` to test bundle management endpoints.
-
-The repository uses an apps-based layout:
-
-```txt
-apps/
-  api/  Express, Prisma, migrations
-  web/  React, Vite
-```
 
 Express is API-only and does not render or serve dashboard HTML. For frontend development, keep the API running on port `3001` and start Vite separately:
 
@@ -162,7 +181,7 @@ docker compose -f docker-compose.production.yml --env-file .env.production down
 
 ## Environment
 
-Set these values in `.env`:
+Set these values in `apps/api/.env` (local) or your host's environment (production):
 
 - `DATABASE_URL`
 - `HOT_UPDATER_AUTH_TOKEN`
@@ -176,7 +195,7 @@ Set these values in `.env`:
 
 ## CLI Usage
 
-Use `hot-updater.config.ts` in the React Native project that deploys bundles, or copy the same configuration there.
+A reference config lives at `apps/api/hot-updater.config.ts` (used by `npm run hot-updater:schema` to regenerate the Prisma models). To deploy bundles, copy the same configuration into the React Native project that owns them and run the CLI there.
 
 ```sh
 npx hot-updater deploy -p ios
