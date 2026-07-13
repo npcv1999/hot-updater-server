@@ -237,14 +237,14 @@ export function App() {
               <table>
                 <thead>
                   <tr>
-                    <th>Version</th>
                     <th>Bundle ID</th>
-                    <th>Channel</th>
+                    <th>Version</th>
                     <th>Platform</th>
-                    <th>Patches</th>
                     <th>Target</th>
                     <th>Enabled</th>
                     <th>Force Update</th>
+                    <th>Channel</th>
+                    <th>Patches</th>
                     <th>Rollout</th>
                   </tr>
                 </thead>
@@ -305,14 +305,14 @@ function BundleRow({ bundle }: { bundle: Bundle }) {
 
   return (
     <tr>
-      <td className="mono version-cell"><span className="version-badge">{bundle.version ?? "-"}</span></td>
       <td className="mono bundle-id" title={bundle.id}>{bundle.id}</td>
-      <td><span className="channel-pill">{bundle.channel}</span></td>
+      <td className="mono version-cell"><span className="version-badge">{bundle.version ?? "-"}</span></td>
       <td><span className="platform"><Smartphone />{formatPlatform(bundle.platform)}</span></td>
-      <td>{patchCount > 0 ? <span className="patch-pill">{patchCount} patch{patchCount === 1 ? "" : "es"}</span> : <span className="muted">-</span>}</td>
       <td><span className="target">{bundle.targetAppVersion ?? "-"}</span></td>
       <td>{bundle.enabled ? <CheckState /> : <EmptyState />}</td>
       <td>{bundle.shouldForceUpdate ? <CheckState /> : <EmptyState />}</td>
+      <td><span className="channel-pill">{bundle.channel}</span></td>
+      <td>{patchCount > 0 ? <span className="patch-pill">{patchCount} patch{patchCount === 1 ? "" : "es"}</span> : <span className="muted">-</span>}</td>
       <td><span className="rollout">{rollout}</span></td>
     </tr>
   );
