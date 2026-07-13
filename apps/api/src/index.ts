@@ -59,6 +59,7 @@ app.get("/dashboard/api/bundles", hotUpdaterAuth, async (req, res) => {
       : undefined;
     const bundles = await prisma.bundles.findMany({
       where: { ...(platform && { platform }), ...(channel && { channel }) },
+      include: { _count: { select: { patches: true } } },
       orderBy: { id: "desc" },
       take: 100,
     });
@@ -76,6 +77,7 @@ app.get("/dashboard/api/bundles", hotUpdaterAuth, async (req, res) => {
         channel: bundle.channel,
         targetAppVersion: bundle.target_app_version,
         rolloutCohortCount: bundle.rollout_cohort_count,
+        patchesCount: bundle._count.patches,
         version: versions.get(bundle.id) ?? null,
       })),
     });

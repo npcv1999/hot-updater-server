@@ -1,18 +1,24 @@
 import {
-  CheckCircle2,
+  Activity,
+  Boxes,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Filter,
+  Flame,
   GitBranch,
   KeyRound,
-  ListTree,
+  Layers3,
+  Minus,
   Moon,
-  Package,
-  RadioTower,
   RefreshCw,
-  ShieldAlert,
-  Sparkles,
-  SquareTerminal,
+  Rocket,
+  Server,
+  ShieldCheck,
+  Smartphone,
   Sun,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { Fragment, type FormEvent, type ReactNode, useMemo, useState } from "react";
 
 type Theme = "dark" | "light";
 
@@ -24,6 +30,7 @@ type Bundle = {
   channel: string;
   targetAppVersion: string | null;
   rolloutCohortCount: number;
+  patchesCount?: number;
   version: number | null;
 };
 
@@ -37,6 +44,7 @@ function getInitialTheme(): Theme {
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [expandedBundleId, setExpandedBundleId] = useState<string | null>(null);
   const [token, setToken] = useState("");
   const [platform, setPlatform] = useState("");
   const [channel, setChannel] = useState("");
@@ -44,14 +52,30 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
-  const metrics = useMemo(() => ({
-    total: bundles.length,
-    enabled: bundles.filter((bundle) => bundle.enabled).length,
-    force: bundles.filter((bundle) => bundle.shouldForceUpdate).length,
-    channels: new Set(bundles.map((bundle) => bundle.channel)).size,
-  }), [bundles]);
+  const channelOptions = useMemo(() => {
+    const values = new Set(bundles.map((bundle) => bundle.channel).filter(Boolean));
+    return [...values].sort((left, right) => left.localeCompare(right));
+  }, [bundles]);
+
+  const visibleBundles = useMemo(() => bundles.filter((bundle) => (
+    (!platform || bundle.platform === platform) &&
+    (!channel || bundle.channel === channel)
+  )), [bundles, channel, platform]);
+
+  const activeBundleCount = useMemo(
+    () => bundles.filter((bundle) => bundle.enabled).length,
+    [bundles],
+  );
+
+  const averageRollout = useMemo(() => {
+    if (!bundles.length) return 0;
+    const total = bundles.reduce(
+      (sum, bundle) => sum + Number(bundle.rolloutCohortCount ?? 1000) / 10,
+      0,
+    );
+    return Math.round(total / bundles.length);
+  }, [bundles]);
 
   function toggleTheme() {
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -63,19 +87,17 @@ export function App() {
     event?.preventDefault();
     setLoading(true);
     setError("");
-    const params = new URLSearchParams({ limit: "100" });
-    if (platform) params.set("platform", platform);
-    if (channel.trim()) params.set("channel", channel.trim());
+    const authToken = token.trim();
 
     try {
-      const response = await fetch(`${apiBaseUrl}/dashboard/api/bundles?${params}`, {
-        headers: { Authorization: `Bearer ${token.trim()}` },
+      const response = await fetch(`${apiBaseUrl}/dashboard/api/bundles?limit=100`, {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const payload = await response.json() as DashboardResponse;
       if (!response.ok) throw new Error(payload.error || payload.message || "Request failed");
       setBundles(payload.data || []);
+      setExpandedBundleId(null);
       setLoaded(true);
-      setUpdatedAt(new Date().toLocaleTimeString());
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Request failed");
     } finally {
@@ -83,80 +105,281 @@ export function App() {
     }
   }
 
+  const connectionState = error ? "error" : loaded ? "ready" : "idle";
+
   return (
     <div className="app" data-theme={theme}>
-      <header className="topbar">
-        <div className="shell topbar-inner">
-          <div className="brand">
-            <span className="brand-mark"><RadioTower /></span>
-            <span><strong>Hot Updater</strong><small>release control / react</small></span>
+      <main className="workspace">
+        <header className="topbar">
+          <a className="topbar-brand" href="/dashboard/" aria-label="Hot Updater Dashboard">
+            <span className="topbar-brand-mark"><Flame /></span>
+            <span className="topbar-brand-copy">
+              <strong>Hot Updater</strong>
+              <small>Dashboard</small>
+            </span>
+          </a>
+
+          <button
+            className="topbar-theme-button"
+            type="button"
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            aria-label={theme === "dark" ? "Light mode" : "Dark mode"}
+            onClick={toggleTheme}
+          >
+            {theme === "dark" ? <Sun /> : <Moon />}
+          </button>
+
+          <div className={`connection-badge ${connectionState}`}>
+            <span className="status-dot" />
+            <span>{error ? "Connection issue" : loaded ? "Inventory synced" : "Ready to connect"}</span>
           </div>
-          <div className="top-actions">
-            <button className="icon-button" type="button" onClick={toggleTheme} title="Change theme" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
-              {theme === "dark" ? <Sun /> : <Moon />}
+        </header>
+
+        <div className="page-shell">
+          <section className="page-heading">
+            <div>
+              <span className="eyebrow"><Activity />Release control</span>
+              <h1>Bundle inventory</h1>
+            </div>
+            <div className="heading-meta">
+              <span>Environment</span>
+              <strong><Server />Self-hosted</strong>
+            </div>
+          </section>
+
+          <section className="metric-grid" aria-label="Inventory overview">
+            <MetricCard
+              accent="blue"
+              icon={<Layers3 />}
+              label="Loaded bundles"
+              value={loaded ? String(bundles.length) : "--"}
+              detail="Current inventory"
+            />
+            <MetricCard
+              accent="green"
+              icon={<ShieldCheck />}
+              label="Active releases"
+              value={loaded ? String(activeBundleCount) : "--"}
+              detail={loaded && bundles.length ? `${Math.round((activeBundleCount / bundles.length) * 100)}% enabled` : "Release status"}
+            />
+            <MetricCard
+              accent="violet"
+              icon={<GitBranch />}
+              label="Channels"
+              value={loaded ? String(channelOptions.length) : "--"}
+              detail={loaded && channelOptions.length ? channelOptions.join(", ") : "Deployment lanes"}
+            />
+            <MetricCard
+              accent="amber"
+              icon={<Rocket />}
+              label="Average rollout"
+              value={loaded ? `${averageRollout}%` : "--"}
+              detail="Across loaded bundles"
+            />
+          </section>
+
+          <form className="control-panel" onSubmit={loadBundles}>
+            <div className="filter-title">
+              <span className="control-icon"><Filter /></span>
+              <span><strong>Filters</strong><small>Refine inventory</small></span>
+            </div>
+
+            <div className="select-wrap">
+              <select value={platform} onChange={(event) => setPlatform(event.target.value)} aria-label="Platform">
+                <option value="">All platforms</option>
+                <option value="ios">iOS</option>
+                <option value="android">Android</option>
+              </select>
+              <ChevronDown />
+            </div>
+
+            <div className="select-wrap">
+              <select value={channel} onChange={(event) => setChannel(event.target.value)} aria-label="Channel">
+                <option value="">All channels</option>
+                {channelOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+              <ChevronDown />
+            </div>
+
+            <label className="token-field">
+              <KeyRound />
+              <input
+                type="password"
+                autoComplete="off"
+                value={token}
+                onChange={(event) => setToken(event.target.value)}
+                placeholder="Authorization token"
+                aria-label="Authorization token"
+              />
+            </label>
+
+            <button className="load-button" type="submit" disabled={loading}>
+              <RefreshCw className={loading ? "spinning" : ""} />
+              <span>{loading ? "Loading" : "Load bundles"}</span>
             </button>
-            <span className={`connection ${error ? "connection-error" : ""}`}><i />{error ? "API unavailable" : "API ready"}</span>
-          </div>
+          </form>
+
+          {error && <div className="error" role="alert"><span className="status-dot error" />{error}</div>}
+
+          <section className="table-panel">
+            <header className="table-header">
+              <div className="table-title">
+                <span className="table-icon"><Boxes /></span>
+                <span>
+                  <strong>Bundle records</strong>
+                  <small>{loaded ? `${visibleBundles.length} visible of ${bundles.length} loaded` : "Inventory not loaded"}</small>
+                </span>
+              </div>
+              <span className={`live-state ${connectionState}`}>
+                <span className="status-dot" />
+                {loaded ? "Live inventory" : "Standby"}
+              </span>
+            </header>
+
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Version</th>
+                    <th className="open-col"><span className="sr-only">Open</span></th>
+                    <th>Bundle ID</th>
+                    <th>Channel</th>
+                    <th>Platform</th>
+                    <th>Patches</th>
+                    <th>Target</th>
+                    <th>Enabled</th>
+                    <th>Force Update</th>
+                    <th>Rollout</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleBundles.map((bundle) => (
+                    <BundleRow
+                      key={bundle.id}
+                      bundle={bundle}
+                      expanded={expandedBundleId === bundle.id}
+                      onToggle={() => setExpandedBundleId((current) => current === bundle.id ? null : bundle.id)}
+                    />
+                  ))}
+                  {!visibleBundles.length && (
+                    <tr>
+                      <td className="empty" colSpan={10}>
+                        <span className="empty-icon"><Layers3 /></span>
+                        <strong>{loaded ? "No bundles in this view" : "Inventory is ready"}</strong>
+                        <small>{loaded ? "0 records match the selected scope." : "No records loaded yet."}</small>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <footer className="pager">
+              <span>Showing <strong>{visibleBundles.length}</strong> of <strong>{bundles.length}</strong> entries</span>
+              <span>Page <strong>1</strong> of <strong>1</strong></span>
+            </footer>
+          </section>
         </div>
-      </header>
-
-      <main className="shell main">
-        <section className="heading-row">
-          <div><p className="eyebrow"><SquareTerminal />Bundle operations</p><h1>Release control.</h1></div>
-          <p className="heading-copy">A focused view of bundle versions, rollout state and release channels.</p>
-        </section>
-
-        <section className="metrics" aria-label="Bundle summary">
-          <Metric icon={<Package />} label="Total bundles" value={metrics.total} tone="mint" />
-          <Metric icon={<CheckCircle2 />} label="Enabled" value={metrics.enabled} />
-          <Metric icon={<ShieldAlert />} label="Force update" value={metrics.force} tone="coral" />
-          <Metric icon={<GitBranch />} label="Channels" value={metrics.channels} tone="amber" />
-        </section>
-
-        <form className="controls" onSubmit={loadBundles}>
-          <label><span><KeyRound />Authorization token</span><input type="password" autoComplete="off" value={token} onChange={(event) => setToken(event.target.value)} placeholder="HOT_UPDATER_AUTH_TOKEN" /></label>
-          <label><span>Platform</span><select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="">All platforms</option><option value="ios">iOS</option><option value="android">Android</option></select></label>
-          <label><span>Channel</span><input value={channel} onChange={(event) => setChannel(event.target.value)} placeholder="All channels" /></label>
-          <button className="load-button" type="submit" disabled={loading}><Sparkles />{loading ? "Loading" : "Load bundles"}</button>
-        </form>
-
-        <section className="inventory">
-          <header className="inventory-head">
-            <div className="inventory-title"><ListTree />Bundle inventory</div>
-            <div className="inventory-meta"><span>{bundles.length} record{bundles.length === 1 ? "" : "s"}</span><span>{updatedAt || "Not loaded"}</span><button className="icon-button" type="button" onClick={() => loadBundles()} title="Refresh bundles" aria-label="Refresh bundles"><RefreshCw /></button></div>
-          </header>
-          {error && <div className="error" role="alert">{error}</div>}
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Version</th><th>Bundle ID</th><th>Platform</th><th>App version</th><th>Channel</th><th>Status</th><th>Force</th><th>Rollout</th></tr></thead>
-              <tbody>
-                {bundles.map((bundle) => <BundleRow key={bundle.id} bundle={bundle} />)}
-                {!bundles.length && <tr><td colSpan={8} className="empty">{loaded ? "No bundles match the current filters." : "Enter your token to load release data."}</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <footer className="footer"><span>POSTGRESQL + AWS S3</span><span><i />{loading ? "Fetching bundles" : loaded ? "Data current" : "Awaiting request"}</span></footer>
       </main>
     </div>
   );
 }
 
-function Metric({ icon, label, value, tone = "" }: { icon: React.ReactNode; label: string; value: number; tone?: string }) {
-  return <article className="metric"><span className="metric-label">{icon}{label}</span><strong className={`metric-value ${tone}`}>{value}</strong></article>;
+function MetricCard({
+  accent,
+  icon,
+  label,
+  value,
+  detail,
+}: {
+  accent: "blue" | "green" | "violet" | "amber";
+  icon: ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <article className={`metric-card ${accent}`}>
+      <span className="metric-icon">{icon}</span>
+      <span className="metric-copy">
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <span title={detail}>{detail}</span>
+      </span>
+    </article>
+  );
 }
 
-function BundleRow({ bundle }: { bundle: Bundle }) {
+function BundleRow({
+  bundle,
+  expanded,
+  onToggle,
+}: {
+  bundle: Bundle;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const patchCount = Number(bundle.patchesCount ?? 0);
+  const rollout = `${Number(bundle.rolloutCohortCount ?? 1000) / 10}%`;
+
   return (
-    <tr>
-      <td className="version">{bundle.version ?? "-"}</td>
-      <td className="muted mono" title={bundle.id}>{bundle.id}</td>
-      <td className="platform">{bundle.platform.toUpperCase()}</td>
-      <td>{bundle.targetAppVersion ?? "-"}</td>
-      <td>{bundle.channel}</td>
-      <td><span className={`status ${bundle.enabled ? "status-on" : "status-off"}`}>{bundle.enabled ? "Enabled" : "Disabled"}</span></td>
-      <td>{bundle.shouldForceUpdate ? "Yes" : "No"}</td>
-      <td>{Number(bundle.rolloutCohortCount ?? 1000) / 10}%</td>
-    </tr>
+    <Fragment>
+      <tr className={expanded ? "is-expanded" : undefined}>
+        <td className="mono version-cell"><span className="version-badge">{bundle.version ?? "-"}</span></td>
+        <td className="open-col">
+          <button
+            className="row-action"
+            type="button"
+            title={expanded ? "Close bundle details" : "Open bundle details"}
+            aria-label={expanded ? "Close bundle details" : "Open bundle details"}
+            aria-expanded={expanded}
+            onClick={onToggle}
+          >
+            <ChevronRight />
+          </button>
+        </td>
+        <td className="mono bundle-id" title={bundle.id}>{bundle.id}</td>
+        <td><span className="channel-pill">{bundle.channel}</span></td>
+        <td><span className="platform"><Smartphone />{formatPlatform(bundle.platform)}</span></td>
+        <td>{patchCount > 0 ? <span className="patch-pill">{patchCount} patch{patchCount === 1 ? "" : "es"}</span> : <span className="muted">-</span>}</td>
+        <td><span className="target">{bundle.targetAppVersion ?? "-"}</span></td>
+        <td>{bundle.enabled ? <CheckState /> : <EmptyState />}</td>
+        <td>{bundle.shouldForceUpdate ? <CheckState /> : <EmptyState />}</td>
+        <td><span className="rollout">{rollout}</span></td>
+      </tr>
+      {expanded && (
+        <tr className="detail-row">
+          <td colSpan={10}>
+            <div className="bundle-detail">
+              <DetailItem label="Bundle reference" value={bundle.id} mono />
+              <DetailItem label="Delivery" value={`${bundle.channel} / ${formatPlatform(bundle.platform)}`} />
+              <DetailItem label="Target app" value={bundle.targetAppVersion ?? "Any version"} />
+              <DetailItem label="Release state" value={`${bundle.enabled ? "Enabled" : "Disabled"} / ${rollout} rollout`} />
+            </div>
+          </td>
+        </tr>
+      )}
+    </Fragment>
   );
+}
+
+function DetailItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <span className="detail-item">
+      <small>{label}</small>
+      <strong className={mono ? "mono" : undefined} title={value}>{value}</strong>
+    </span>
+  );
+}
+
+function CheckState() {
+  return <span className="state state-on" title="Yes"><Check /></span>;
+}
+
+function EmptyState() {
+  return <span className="state state-off" title="No"><Minus /></span>;
+}
+
+function formatPlatform(platform: string) {
+  return platform.toLowerCase() === "ios" ? "iOS" : "Android";
 }
