@@ -35,7 +35,7 @@ S3_BUCKET_NAME="your-bucket-name"
 ### 2. Start PostgreSQL
 
 ```sh
-docker compose up -d
+npm run db:up
 ```
 
 ### 3. Install dependencies and create the database schema
@@ -79,7 +79,7 @@ npm run start
 Stop the server with `Ctrl + C`. Stop PostgreSQL with:
 
 ```sh
-docker compose down
+npm run db:down
 ```
 
 ## Docker Production
