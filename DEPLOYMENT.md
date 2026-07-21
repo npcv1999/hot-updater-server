@@ -28,7 +28,6 @@ Mobile app ──HTTPS──> LB/Ingress ──> container :3001 ──> Postgre
 |---|---|
 | `DATABASE_URL` | Connection string Postgres, vd `postgresql://user:pass@host:5432/hot_updater?schema=public` |
 | `HOT_UPDATER_AUTH_TOKEN` | `openssl rand -hex 32`. Bảo vệ API quản lý bundle; cấp cho team RN dùng trong CI |
-| `DASHBOARD_ALLOWED_ORIGINS` | Domain web dashboard được phép gọi API, vd `https://dashboard.example.com`. Nhiều domain thì phân tách bằng dấu phẩy |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | IAM user quyền RW đúng 1 bucket |
 | `S3_BUCKET_NAME` | Tên bucket |
 | `S3_REGION` | Region (`auto` với R2/MinIO) |
@@ -53,32 +52,6 @@ docker run -p 3001:3001 --env-file .env.production hot-updater-server
 - 1 replica là đủ cho khởi đầu.
 
 Tham khảo: `docker-compose.production.yml` trong repo là bản chạy đủ stack (Postgres + app) trên 1 máy đơn.
-
-## 3.1 Deploy dashboard web
-
-Dashboard nằm ở `apps/web` và deploy tách khỏi API.
-
-Vercel/Netlify/Railway Static/Amplify đều được. Cấu hình chung:
-
-| Mục | Giá trị |
-|---|---|
-| Root directory | `apps/web` |
-| Build command | `npm run build` |
-| Output directory | `dist` |
-| Web env | `VITE_API_BASE_URL=https://your-api.up.railway.app` |
-| Open URL | `https://your-dashboard.vercel.app/dashboard/` |
-
-Trên API Railway, set thêm:
-
-```env
-DASHBOARD_ALLOWED_ORIGINS="https://your-dashboard.vercel.app"
-```
-
-Nếu cần vừa local vừa production:
-
-```env
-DASHBOARD_ALLOWED_ORIGINS="http://localhost:5173,https://your-dashboard.vercel.app"
-```
 
 ## 4. Network / security
 

@@ -3,20 +3,33 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "apps/*"
-  ],
   "scripts": {
-    "dev": "npm run dev -w hot-updater-api",
-    "dev:api": "npm run dev -w hot-updater-api",
-    "dev:web": "npm run dev -w hot-updater-dashboard",
-    "start": "npm run start -w hot-updater-api",
-    "build": "npm run build -w hot-updater-api",
-    "build:api": "npm run build -w hot-updater-api",
-    "build:web": "npm run build -w hot-updater-dashboard",
-    "prisma:generate": "npm run prisma:generate -w hot-updater-api",
-    "prisma:migrate": "npm run prisma:migrate -w hot-updater-api",
-    "prisma:migrate:deploy": "npm run prisma:migrate:deploy -w hot-updater-api",
-    "hot-updater:schema": "npm run hot-updater:schema -w hot-updater-api"
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "hot-updater:schema": "hot-updater db generate src/hotUpdater.ts --yes"
+  },
+  "dependencies": {
+    "@hot-updater/aws": "^0.35.3",
+    "@hot-updater/server": "^0.35.3",
+    "@prisma/client": "^6.11.1",
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "prisma": "^6.11.1",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@hot-updater/bare": "^0.35.3",
+    "@hot-updater/core": "^0.35.3",
+    "@hot-updater/standalone": "^0.35.3",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.10",
+    "@types/swagger-ui-express": "^4.1.8",
+    "hot-updater": "^0.35.3",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
   }
 }
